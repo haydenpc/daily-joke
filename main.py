@@ -2,40 +2,60 @@ import os
 import requests
 from dotenv import load_dotenv
 import smtplib
+import time
 
 load_dotenv()
 
 JOKE_API_URL = "https://api.api-ninjas.com/v1/dadjokes"
-TEXTBELT_API_URL = "https://textbelt.com/text"
 
 PHONE_NUMBER = os.getenv("PHONE_NUMBER")
-TEXTBELT_API = os.getenv("TEXTBELT_API")
 API_KEY_JOKE = os.getenv("API_KEY_JOKE")
 EMAIL = os.getenv("EMAIL")
 PASSWORD = os.getenv("PASSWORD")
-CARRIERS_DOMAIN = os.getenv("CARRIERS_DOMAIN")
+CARRIERS = {
+    'cricket': '@mms.cricketwireless.net',
+    'att':'@mms.att.net',
+    'tmobile': '@tomail.net',
+    'verizon': '@vtext.com',
+    'sprint': '@page.nextel.com'
+}
+CARRIER = os.getenv("CARRIER", "cricket")
+SMPT_DOMAIN = os.getenv("SMTP_DOMAIN")
+SMTP_PORT = int(os.getenv("SMTP_PORT"))
+
 
 def get_joke():
     headers = {
         "X-Api-Key": API_KEY_JOKE,
     }
-    response = requests.get(JOKE_API_URL, headers=headers)
-    print(response.json())
-    if response.status_code == 200:
-        joke = response.json()[0]['joke']
-        return joke
-    else:
-        print("couldnt get joke")
-        return None
+    while True :
+        try:
+            response = requests.get(JOKE_API_URL, headers=headers)
+            response.raise_for_status()
+            joke = response.json()[0]['joke']
+            return joke
+        except requests.exceptions.RequestException as e:
+                print(f"couldnt get joke {e}")
+                time.sleep(3)
     
 def send(message):
-    to_number = PHONE_NUMBER.format(CARRIERS_DOMAIN)
-    auth = (EMAIL, PASSWORD)
+    carrier_domain = CARRIERS.get(CARRIER)
+    to_number = f"{PHONE_NUMBER}{carrier_domain}"
 
-    server = smtplib.SMTP( "smtp.gmail.com", 587 )
-    server.starttls()
-    server.login(auth[0], auth[1])
+    try:
+        with smtplib.SMTP(SMPT_DOMAIN, SMTP_PORT) as server:
+            server.starttls()
+            server.login(EMAIL, PASSWORD)
+            server.sendmail(EMAIL, to_number, message.encode('utf-8'))
+        print("sent!")
+    except smtplib.SMTPException as e:
+        print("error failed to sent joke:{e}")
 
-    server.sendmail( auth[0], to_number, message)
+def main():
+    joke = get_joke()
+    if joke:
+        send(joke)
+    else:
+        print("no joke to send")
 
-send(get_joke())
+main()
