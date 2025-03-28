@@ -25,6 +25,7 @@ SMTP_PORT = int(os.getenv("SMTP_PORT"))
 
 
 def get_joke():
+    print("attempting to fetch joke")
     headers = {
         "X-Api-Key": API_KEY_JOKE,
     }
@@ -33,12 +34,14 @@ def get_joke():
             response = requests.get(JOKE_API_URL, headers=headers)
             response.raise_for_status()
             joke = response.json()[0]['joke']
+            print("Joke fetched succesfully {joke}")
             return joke
         except requests.exceptions.RequestException as e:
                 print(f"couldnt get joke {e}")
                 time.sleep(3)
     
 def send(message):
+    print("attempting to send sms")
     carrier_domain = CARRIERS.get(CARRIER)
     to_number = f"{PHONE_NUMBER}{carrier_domain}"
 
@@ -49,7 +52,7 @@ def send(message):
             server.sendmail(EMAIL, to_number, message.encode('utf-8'))
         print("sent!")
     except smtplib.SMTPException as e:
-        print("error failed to sent joke:{e}")
+        print("error failed to sent joke: {e}")
 
 def main():
     joke = get_joke()
