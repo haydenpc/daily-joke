@@ -3,6 +3,7 @@ import requests
 from dotenv import load_dotenv
 import smtplib
 import time
+import datetime
 
 load_dotenv()
 
@@ -34,7 +35,7 @@ def get_joke():
             response = requests.get(JOKE_API_URL, headers=headers)
             response.raise_for_status()
             joke = response.json()[0]['joke']
-            print("Joke fetched succesfully {joke}")
+            print(f"Joke fetched succesfully {joke}")
             return joke
         except requests.exceptions.RequestException as e:
                 print(f"couldnt get joke {e}")
@@ -52,9 +53,11 @@ def send(message):
             server.sendmail(EMAIL, to_number, message.encode('utf-8'))
         print("sent!")
     except smtplib.SMTPException as e:
-        print("error failed to sent joke: {e}")
+        print(f"error failed to sent joke: {e}")
 
 def main():
+    current_time = datetime.datetime.now()
+    print(f"running daily joke script: {current_time}")
     joke = get_joke()
     if joke:
         send(joke)
